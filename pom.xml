@@ -1,17 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.amazonaws</groupId>
+    <groupId>com.xtrac</groupId>
     <version>1.2.1</version>
-    <artifactId>dynamodb-cross-region-replication</artifactId>
+    <artifactId>double-cross-region-replication</artifactId>
     <packaging>jar</packaging>
-    <name>DynamoDB Cross-region Replication</name>
+    <name>Double Cross-region Replication</name>
     <description>
-        The DynamoDB Cross-Region Replication library allows you to replicate DynamoDB tables in real-time with Streams.
+        The Double Cross-Region Replication library allows you to replicate DynamoDB tables in real-time with Streams.
     </description>
-    <url>https://github.com/awslabs/dynamodb-cross-region-library</url>
-    <scm>
-        <url>https://github.com/awslabs/dynamodb-cross-region-library.git</url>
-    </scm>
 
     <properties>
         <aws.java.sdk.version>1.11.115</aws.java.sdk.version>
@@ -39,28 +35,6 @@
         <java.jdk.version>1.7</java.jdk.version>
     </properties>
 
-    <developers>
-        <developer>
-            <name>Ben Schwartz</name>
-            <email>schwar@amazon.com</email>
-        </developer>
-        <developer>
-            <name>Daniela Miao</name>
-            <email>dym@amazon.com</email>
-        </developer>
-        <developer>
-            <name>Alexander Patrikalakis</name>
-            <email>amcp@me.com</email>
-            <url>https://www.linkedin.com/in/amcpatrix/en</url>
-        </developer>
-    </developers>
-    <contributors>
-        <contributor>
-            <name>Kenny Lei</name>
-            <email>kennylei@amazon.com</email>
-        </contributor>
-    </contributors>
-    <inceptionYear>2014</inceptionYear>
     <licenses>
         <license>
             <name>Amazon Software License</name>
