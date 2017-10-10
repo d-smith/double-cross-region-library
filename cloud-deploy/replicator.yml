@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  This template defines an ECS cluster that runs the dynamodb replicator
+  as a container server. Running in a container provides for high availability
+  in that the workload is restarted on failure and the cluster can
+  span availability zones.
+
+Parameters:
+  SourceTable:
+    Type: String
+  SourceRegion:
+    Type: String
+    Default: us-east-1  
+  DestTable:
+    Type: String
+  DestRegion:
+    Type: String
+    Default: us-west-2
+  HashAttrName:
+    Type: String
+  BucketRoot:
+    Type: String
+    Description: Bucket base url
+  MaxClusterSize:
+    Type: String
+    Default: 12
+  ClusterName:
+    Type: String
+  AMIType:
+    Type: String
+    AllowedValues:
+      - Amazon
+      - Rancher
+    Default:
+      Amazon
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the ECS instances.
+  DesiredCapacity:
+    Type: Number
+    Default: '2'
+    Description: Number of instances to launch in your ECS cluster.
+  MaxSize:
+    Type: Number
+    Default: '2'
+    Description: Maximum number of instances that can be launched in your ECS cluster.
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
+      m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
+      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
+      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref BucketRoot, vpc-pub-priv-172.yml]]
+
+  ReplicatorRole:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref BucketRoot, replicatorrole.yml]]
+      Parameters:
+        SourceRegion: !Ref SourceRegion
+        SourceTable: !Ref SourceTable
+        DestRegion: !Ref DestRegion
+        DestTable: !Ref DestTable
+
+  ECS: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref BucketRoot, ecs-cluster.yml]]
+      Parameters:
+        AMIType: !Ref AMIType
+        KeyName: !Ref KeyName
+        InstanceType: !Ref InstanceType
+        MaxSize: !Ref MaxClusterSize
+        EcsClusterName: !Ref ClusterName
+        EcsRoleName: !GetAtt ReplicatorRole.Outputs.RoleName
+        ParameterStoreEnvPath: /fake
+        KeyId: fake
+        PrivateSubnet1: !GetAtt VPC.Outputs.PrivateSubnet1
+        PrivateSubnet2: !GetAtt VPC.Outputs.PrivateSubnet2
+        VpcId: !GetAtt VPC.Outputs.VpcId
+        IngressSecurityGroup: !GetAtt VPC.Outputs.SSHIngressSecurityGroup
+
+  ReplicatorSvc:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join ['/', [!Ref BucketRoot, replservice.yml]]
+      Parameters:
+        SourceRegion: !Ref SourceRegion
+        SourceTable: !Ref SourceTable
+        DestRegion: !Ref DestRegion
+        DestTable: !Ref DestTable
+        HashAttrName: !Ref HashAttrName
+        ECSCluster: !GetAtt ECS.Outputs.ECSCluster

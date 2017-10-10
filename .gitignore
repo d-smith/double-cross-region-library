@@ -6,3 +6,7 @@ target
 *.iml
 .idea
 *.log
+*.jar
+setenv
+setenv-west
+setenv-east

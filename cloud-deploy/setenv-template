@@ -1,0 +1,7 @@
+# Name of the s3 bucket to stage the cf templates
+export DEPLOY_BUCKET=
+
+# Endpoint for the bucket based on the region and the deploy bucket. For 
+# example a bucket foo in us-east-1 would have an endpoint of
+# https://s3.amazonaws.com/foo
+export BUCKET_ROOT=

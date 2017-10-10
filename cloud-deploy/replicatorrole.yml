@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create an IAM role needed by ECS cluster instances.
+
+Parameters:
+  SourceTable:
+    Type: String
+  SourceRegion:
+    Type: String
+    Default: us-east-1  
+  DestTable:
+    Type: String
+  DestRegion:
+    Type: String
+    Default: us-west-2
+
+
+Resources:
+  DDBReplicatorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'logs:CreateLogGroup','logs:DescribeLogStreams',
+              'ecr:BatchCheckLayerAvailability','ecr:BatchGetImage','ecr:GetDownloadUrlForLayer','ecr:GetAuthorizationToken']
+            Resource: '*'
+      - PolicyName: metrics
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ["cloudwatch:PutMetricData"]
+            Resource: '*'
+      - PolicyName: source-table
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ["dynamodb:DescribeTable","dynamodb:DescribeStream","dynamodb:Scan","dynamodb:GetItem", "dynamodb:GetShardIterator","dynamodb:GetRecords"]
+            Resource: 
+            - !Join [ '', ['arn:aws:dynamodb:', !Ref 'SourceRegion' , ':', !Ref 'AWS::AccountId', ':table/', !Ref 'SourceTable']]
+            - !Join [ '', ['arn:aws:dynamodb:', !Ref 'SourceRegion' , ':', !Ref 'AWS::AccountId', ':table/', !Ref 'SourceTable', '/*']]
+      - PolicyName: dest-table
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ["dynamodb:DescribeTable","dynamodb:Scan","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:GetItem","dynamodb:DeleteItem"]
+            Resource: !Join [ '', ['arn:aws:dynamodb:', !Ref 'DestRegion' , ':', !Ref 'AWS::AccountId', ':table/', !Ref 'DestTable']]
+      - PolicyName: repl-table
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ["dynamodb:DescribeTable","dynamodb:CreateTable","dynamodb:Scan","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:GetItem","dynamodb:DeleteItem"]
+            Resource: !Join [ '', ['arn:aws:dynamodb:', !Ref 'SourceRegion' , ':', !Ref 'AWS::AccountId', ':table/DynamoDBCrossRegionReplication*']]
+  
+  ReplRunnerProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+      - !Ref DDBReplicatorRole
+
+Outputs:
+  RoleName:
+    Value: !Ref DDBReplicatorRole

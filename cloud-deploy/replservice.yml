@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create an IAM role needed by ECS cluster instances.
+
+Parameters:
+  SourceTable:
+    Type: String
+  SourceRegion:
+    Type: String
+    Default: us-east-1
+  HashAttrName:
+    Type: String
+  DestTable:
+    Type: String
+  DestRegion:
+    Type: String
+    Default: us-west-2
+  ECSCluster:
+    Type: String
+
+Resources:
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [DDBReplicatorGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+
+  ReplTaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: ReplTaskDef
+      ContainerDefinitions:
+        -
+          Name: dynamodbcrr
+          Image: xtracdev/doublecx
+          Memory: 2048
+          Cpu: 1024
+          Command: 
+            - --sourceRegion
+            - !Sub ${SourceRegion} 
+            - --sourceTable
+            - !Sub  ${SourceTable} 
+            - --destinationRegion
+            - !Sub  ${DestRegion} 
+            - --destinationTable
+            - !Sub  ${DestTable}
+            - --hashAttrName
+            - !Sub ${HashAttrName}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: pgpublish
+
+  ReplServiceDef:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: '1'
+      TaskDefinition: !Ref 'ReplTaskDef'
