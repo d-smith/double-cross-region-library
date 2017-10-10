@@ -74,10 +74,29 @@ public abstract class DynamoDBReplicationEmitterTestsBase {
 
     static {
         String attribute = "att";
+
         NEWITEM1.put(attribute, new AttributeValue().withS("1"));
         OLDITEM1.put(attribute, new AttributeValue().withS("0"));
         NEWITEM2.put(attribute, new AttributeValue().withS("1"));
         OLDITEM2.put(attribute, new AttributeValue().withS("0"));
+
+        String replicate = "replicate";
+        NEWITEM1.put(replicate, new AttributeValue().withBOOL(true));
+        OLDITEM1.put(replicate, new AttributeValue().withBOOL(true));
+        NEWITEM2.put(replicate, new AttributeValue().withBOOL(true));
+        OLDITEM2.put(replicate, new AttributeValue().withBOOL(true));
+
+        String ts = "ts";
+        NEWITEM1.put(ts, new AttributeValue().withN("111"));
+        OLDITEM1.put(ts, new AttributeValue().withN("111"));
+        NEWITEM2.put(ts, new AttributeValue().withN("111"));
+        OLDITEM2.put(ts, new AttributeValue().withN("111"));
+
+        String wid = "wid";
+        NEWITEM1.put(wid, new AttributeValue().withS("xxx"));
+        OLDITEM1.put(wid, new AttributeValue().withS("xxx"));
+        NEWITEM2.put(wid, new AttributeValue().withS("xxx"));
+        OLDITEM2.put(wid, new AttributeValue().withS("xxx"));
     }
 
     private static final StreamRecord INSERT1 = new StreamRecord().withKeys(KEY1).withNewImage(OLDITEM1).withSequenceNumber(getSequenceNumber(0))

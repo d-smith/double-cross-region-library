@@ -13,10 +13,7 @@
  */
 package com.amazonaws.services.dynamodbv2.streams.connectors;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -43,17 +40,7 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient;
-import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest;
-import com.amazonaws.services.dynamodbv2.model.DeleteItemResult;
-import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
-import com.amazonaws.services.dynamodbv2.model.ItemCollectionSizeLimitExceededException;
-import com.amazonaws.services.dynamodbv2.model.OperationType;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException;
-import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
-import com.amazonaws.services.dynamodbv2.model.PutItemResult;
-import com.amazonaws.services.dynamodbv2.model.Record;
-import com.amazonaws.services.dynamodbv2.model.UpdateItemRequest;
-import com.amazonaws.services.dynamodbv2.model.UpdateItemResult;
+import com.amazonaws.services.dynamodbv2.model.*;
 import com.amazonaws.services.kinesis.connectors.UnmodifiableBuffer;
 import com.amazonaws.services.kinesis.connectors.interfaces.IEmitter;
 
@@ -205,6 +192,38 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
         skipErrors = false; // TODO make configurable
     }
 
+    private boolean isReplicationIndicated(String eventName, StreamRecord ddb) {
+        log.info("get image to test for replication attributes");
+        Map<String,AttributeValue> image = null;
+        if(eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
+            image = ddb.getNewImage();
+        } else if(eventName.equalsIgnoreCase(OperationType.REMOVE.toString())) {
+            image = ddb.getOldImage();
+        } else {
+            log.warn("Unsupported operation type detected: " + eventName);
+        }
+
+        if(image == null) {
+            return false;
+        }
+
+        //The image must contain a replicate attribute set to true
+        if(image.containsKey("replicate") == false) {
+            log.info("No replicate attribute");
+            return false;
+        }
+
+        //If replication is indicated, an attribute name ts and an attribute named
+        //wid must be present
+        if(!image.containsKey("ts") || !image.containsKey("wid")) {
+            log.info("No ts and/or wid attribute");
+            return false;
+        }
+
+        return true;
+
+    }
+
     /**
      * Creates a DynamoDB write request based on the DynamoDB Stream record.
      *
@@ -215,6 +234,11 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
     private AmazonWebServiceRequest createRequest(final Record record) {
         final String eventName = record.getEventName();
         final AmazonWebServiceRequest request;
+
+        if(!isReplicationIndicated(eventName, record.getDynamodb())) {
+            return null;
+        }
+
         if (eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
             // For INSERT or MODIFY: Put the new image in the DynamoDB table
             PutItemRequest putItemRequest = new PutItemRequest();
