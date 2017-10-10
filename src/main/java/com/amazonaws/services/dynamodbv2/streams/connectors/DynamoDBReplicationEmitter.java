@@ -113,6 +113,9 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
 
     private final boolean skipErrors;
 
+    private final String insertOrModifyConditionExpression;
+    private final String removeConditionExpression;
+
     /**
      * Constructor with default CloudWatch client and default DynamoDBAsync.
      *
@@ -202,10 +205,12 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
             CLOUDWATCH.get().setRegion(Regions.getCurrentRegion() == null ? Region.getRegion(Regions.US_EAST_1) : Regions.getCurrentRegion());
         }
         skipErrors = false; // TODO make configurable
+
+        insertOrModifyConditionExpression = String.format("attribute_not_exists(%s) OR ((:ts > ts) OR (:ts = ts AND :wid > wid))", hashAttrName);
+        removeConditionExpression = String.format("attribute_not_exists(%s) OR (:ts >= ts)", hashAttrName);
     }
 
     private boolean isReplicationIndicated(String eventName, StreamRecord ddb) {
-        log.info("get image to test for replication attributes");
         Map<String,AttributeValue> image = null;
         if(eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
             image = ddb.getNewImage();
@@ -221,14 +226,14 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
 
         //The image must contain a replicate attribute set to true
         if(image.containsKey("replicate") == false) {
-            log.info("No replicate attribute");
+            log.debug("No replicate attribute");
             return false;
         }
 
         //If replication is indicated, an attribute name ts and an attribute named
         //wid must be present
         if(!image.containsKey("ts") || !image.containsKey("wid")) {
-            log.info("No ts and/or wid attribute");
+            log.debug("No ts and/or wid attribute");
             return false;
         }
 
@@ -248,23 +253,38 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
         final AmazonWebServiceRequest request;
 
         if(!isReplicationIndicated(eventName, record.getDynamodb())) {
+            log.info(String.format("replication not indicated for %s", record.getDynamodb().getKeys().toString()));
             return null;
         }
 
-        log.info("hash attr name");
-        log.info(this.hashAttrName);
+        log.info(String.format("replicating %s", record.getDynamodb().getKeys().toString()));
 
         if (eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
             // For INSERT or MODIFY: Put the new image in the DynamoDB table
             PutItemRequest putItemRequest = new PutItemRequest();
-            putItemRequest.setItem(record.getDynamodb().getNewImage());
+            Map<String,AttributeValue> item = record.getDynamodb().getNewImage();
+            putItemRequest.setItem(item);
             putItemRequest.setTableName(getTableName());
+
+            putItemRequest.setConditionExpression(insertOrModifyConditionExpression);
+            Map<String,AttributeValue> expressionAttrVals = new HashMap<>();
+            expressionAttrVals.put(":ts", item.get("ts"));
+            expressionAttrVals.put(":wid", item.get("wid"));
+            putItemRequest.setExpressionAttributeValues(expressionAttrVals);
+
             request = putItemRequest;
         } else if (eventName.equalsIgnoreCase(OperationType.REMOVE.toString())) {
             // For REMOVE: Delete the item from the DynamoDB table
             DeleteItemRequest deleteItemRequest = new DeleteItemRequest();
             deleteItemRequest.setKey(record.getDynamodb().getKeys());
             deleteItemRequest.setTableName(getTableName());
+
+            deleteItemRequest.setConditionExpression(removeConditionExpression);
+            Map<String,AttributeValue> olditem = record.getDynamodb().getOldImage();
+            Map<String,AttributeValue> expressionAttrVals = new HashMap<>();
+            expressionAttrVals.put(":ts", olditem.get("ts"));
+            deleteItemRequest.setExpressionAttributeValues(expressionAttrVals);
+
             request = deleteItemRequest;
         } else {
             // This should only happen if DynamoDB Streams adds/changes its operation types
