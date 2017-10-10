@@ -31,6 +31,6 @@ import com.amazonaws.services.kinesis.connectors.interfaces.IEmitter;
 public class DynamoDBReplicationEmitterTests extends DynamoDBReplicationEmitterTestsBase {
     @Override
     protected IEmitter<Record> createEmitterInstance() {
-        return new DynamoDBReplicationEmitter("TEST", "ENDPOINT", "REGION", "TABLE", null, new AWSStaticCredentialsProvider(new BasicAWSCredentials("Access", "Secret")));
+        return new DynamoDBReplicationEmitter("TEST", "ENDPOINT", "REGION", "TABLE", "test-hash-attr", null, new AWSStaticCredentialsProvider(new BasicAWSCredentials("Access", "Secret")));
     }
 }

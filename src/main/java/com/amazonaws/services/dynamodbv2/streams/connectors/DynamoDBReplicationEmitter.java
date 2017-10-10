@@ -53,6 +53,8 @@ import lombok.extern.log4j.Log4j;
 @Log4j
 public class DynamoDBReplicationEmitter implements IEmitter<Record> {
 
+    public static final String HASH_ATTR_NAME = "HashAttrName";
+
     /**
      * CloudWatch Metric for Records that failed.
      */
@@ -97,6 +99,9 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
      * The DynamoDB table.
      */
     private final String tableName;
+
+    private final String hashAttrName;
+
     /**
      * The KCL application name
      */
@@ -117,7 +122,7 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
      */
     @Deprecated
     public DynamoDBReplicationEmitter(final DynamoDBStreamsConnectorConfiguration configuration) {
-        this(configuration.APP_NAME, configuration.DYNAMODB_ENDPOINT, configuration.REGION_NAME, configuration.DYNAMODB_DATA_TABLE_NAME,
+        this(configuration.APP_NAME, configuration.DYNAMODB_ENDPOINT, configuration.REGION_NAME, configuration.DYNAMODB_DATA_TABLE_NAME, configuration.getInitProperties().getProperty(HASH_ATTR_NAME),
             (AmazonCloudWatchAsync) new AmazonCloudWatchAsyncClient(new DefaultAWSCredentialsProviderChain(), Executors.newFixedThreadPool(MAX_THREADS)).withRegion(Regions.getCurrentRegion() == null ? Region.getRegion(Regions.US_EAST_1) : Regions.getCurrentRegion()), new DefaultAWSCredentialsProviderChain());
     }
 
@@ -130,16 +135,19 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
      *            The region of the emitter
      * @param tableName
      *            The tableName the emitter should emit to
+     *
+     * @param hashAttrName
+     *            Name of the table's key hash attribute
      * @param cloudwatch
      *            The cloudwatch client used for this application
      * @param credentialProvider
      *            The credential provider used for the DynamoDB client
-     * @deprecated Deprecated by {@link #DynamoDBReplicationEmitter(String, String, String, String, AmazonDynamoDBAsync, AmazonCloudWatchAsync)}
+     * @deprecated Deprecated by {@link #DynamoDBReplicationEmitter(String, String, String, String, String, AmazonDynamoDBAsync, AmazonCloudWatchAsync)}
      */
     @Deprecated
-    public DynamoDBReplicationEmitter(final String applicationName, final String endpoint, final String region, final String tableName,
+    public DynamoDBReplicationEmitter(final String applicationName, final String endpoint, final String region, final String tableName, final String hashAttrName,
                                       final AmazonCloudWatchAsync cloudwatch, final AWSCredentialsProvider credentialProvider) {
-        this(applicationName, endpoint, region, tableName,
+        this(applicationName, endpoint, region, tableName, hashAttrName,
                 new AmazonDynamoDBAsyncClient(credentialProvider, new ClientConfiguration().withMaxConnections(MAX_THREADS).withRetryPolicy(PredefinedRetryPolicies.DYNAMODB_DEFAULT), Executors.newFixedThreadPool(MAX_THREADS)),
                 cloudwatch);
     }
@@ -155,7 +163,7 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
      */
     public DynamoDBReplicationEmitter(final DynamoDBStreamsConnectorConfiguration configuration, final AmazonDynamoDBAsync dynamoDBAsync,
                                       final AmazonCloudWatchAsync cloudwatch) {
-        this(configuration.APP_NAME, configuration.DYNAMODB_ENDPOINT, configuration.REGION_NAME, configuration.DYNAMODB_DATA_TABLE_NAME,
+        this(configuration.APP_NAME, configuration.DYNAMODB_ENDPOINT, configuration.REGION_NAME, configuration.DYNAMODB_DATA_TABLE_NAME, configuration.getInitProperties().getProperty(HASH_ATTR_NAME),
                 dynamoDBAsync, cloudwatch);
     }
 
@@ -168,18 +176,22 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
      *            The region of the emitter
      * @param tableName
      *            The tableName the emitter should emit to
+     *
+     * @param hashAttrName
+     *            Table has attribute name
      * @param dynamoDBAsync
      *            The DynamoDB client used for this application
      * @param cloudwatch
      *            The cloudwatch client used for this application
      */
     @SuppressWarnings("deprecation")
-    public DynamoDBReplicationEmitter(final String applicationName, final String endpoint, final String region, final String tableName,
+    public DynamoDBReplicationEmitter(final String applicationName, final String endpoint, final String region, final String tableName, final String hashAttrName,
                                       final AmazonDynamoDBAsync dynamoDBAsync, final AmazonCloudWatchAsync cloudwatch) {
         this.applicationName = applicationName;
         this.endpoint = endpoint;
         this.region = region;
         this.tableName = tableName;
+        this.hashAttrName = hashAttrName;
 
         final boolean setDynamoDB = DYNAMODB.compareAndSet(null, dynamoDBAsync);
         if (setDynamoDB && dynamoDBAsync != null) {
@@ -238,6 +250,9 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
         if(!isReplicationIndicated(eventName, record.getDynamodb())) {
             return null;
         }
+
+        log.info("hash attr name");
+        log.info(this.hashAttrName);
 
         if (eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
             // For INSERT or MODIFY: Put the new image in the DynamoDB table

@@ -66,6 +66,10 @@ public class CommandLineArgs {
     @Parameter(names = DESTINATION_TABLE, description = "Name of the destination table", required = true)
     private String destinationTable;
 
+    public static final String HASH_ATTR_NAME = "--hashAttrName";
+    @Parameter(names = HASH_ATTR_NAME, description = "Name of hash key attribute in destination table", required = true)
+    private String hashAttrName;
+
     public static final String DONT_PUBLISH_CLOUDWATCH = "--dontPublishCloudwatch";
     @Parameter(names = DONT_PUBLISH_CLOUDWATCH, description = "Have KCL not publish Cloudwatch metrics", hidden = true)
     private boolean dontPublishCloudwatch = false;

@@ -38,6 +38,7 @@ import com.google.common.base.Optional;
 public class CommandLineInterfaceTests {
     private final String destinationSigningRegion = Regions.EU_WEST_1.getName();
     private final String destinationTableValue = "SingleShardMaxReplica";
+    private final String hashAttrName = "id";
     private final String sourceSigningRegion = Regions.US_WEST_1.getName();
     private final String sourceTableValue = "SingleShardMax2";
 
@@ -49,7 +50,9 @@ public class CommandLineInterfaceTests {
             CommandLineArgs.SOURCE_SIGNING_REGION,
             sourceSigningRegion,
             CommandLineArgs.SOURCE_TABLE,
-            sourceTableValue
+            sourceTableValue,
+            CommandLineArgs.HASH_ATTR_NAME,
+            hashAttrName
     };
     private CommandLineArgs args = null;
     private JCommander cmd = null;

@@ -22,6 +22,8 @@ import com.amazonaws.services.kinesis.connectors.interfaces.IFilter;
 import com.amazonaws.services.kinesis.connectors.interfaces.IKinesisConnectorPipeline;
 import com.amazonaws.services.kinesis.connectors.interfaces.ITransformer;
 
+import java.util.Properties;
+
 /**
  * The Pipeline used when there is only one single master replicating to multiple replicas. Uses:
  * <ul>
@@ -37,6 +39,8 @@ public class DynamoDBMasterToReplicasPipeline implements IKinesisConnectorPipeli
     @Override
     public IEmitter<Record> getEmitter(final KinesisConnectorConfiguration configuration) {
         if (configuration instanceof DynamoDBStreamsConnectorConfiguration) {
+            DynamoDBStreamsConnectorConfiguration dcxConfig = (DynamoDBStreamsConnectorConfiguration) configuration;
+            Properties props = dcxConfig.getInitProperties();
             return new DynamoDBReplicationEmitter((DynamoDBStreamsConnectorConfiguration) configuration);
         } else {
             throw new IllegalArgumentException(this + " needs a DynamoDBStreamsConnectorConfiguration argument.");

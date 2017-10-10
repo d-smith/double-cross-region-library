@@ -36,6 +36,12 @@ public class DynamoDBStreamsConnectorConfiguration extends KinesisConnectorConfi
     public static final Map<String, List<String>> DEFAULT_DYNAMODB_REGIONS_TO_TABLES =
             ImmutableMap.<String, List<String>>of(DEFAULT_REGION_NAME, Lists.newArrayList(DEFAULT_DYNAMODB_DATA_TABLE_NAME));
 
+    private Properties initProperties;
+
+    public Properties getInitProperties() {
+        return initProperties;
+    }
+
     /**
      * Constructor for the DynamoDBStreamsConnectorConfiguration class.
      *
@@ -47,6 +53,6 @@ public class DynamoDBStreamsConnectorConfiguration extends KinesisConnectorConfi
     public DynamoDBStreamsConnectorConfiguration(final Properties properties,
         final AWSCredentialsProvider credentialsProvider) {
         super(properties, credentialsProvider);
-
+        this.initProperties = properties;
     }
 }

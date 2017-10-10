@@ -108,6 +108,7 @@ public class CommandLineInterface {
     private final boolean isPublishCloudWatch;
     private final String taskName;
     private final String destinationTable;
+    private final String hashAttrName;
     private final Optional<Long> parentShardPollIntervalMillis;
 
     @VisibleForTesting
@@ -131,6 +132,7 @@ public class CommandLineInterface {
         destinationRegion = RegionUtils.getRegion(params.getDestinationSigningRegion());
         destinationDynamodbEndpoint = Optional.fromNullable(params.getDestinationEndpoint());
         destinationTable = params.getDestinationTable();
+        hashAttrName = params.getHashAttrName();
 
         // other crr parameters
         getRecordsLimit = Optional.fromNullable(params.getBatchSize());
@@ -200,6 +202,7 @@ public class CommandLineInterface {
         properties.put(DynamoDBStreamsConnectorConfiguration.PROP_APP_NAME, actualTaskName);
         properties.put(DynamoDBStreamsConnectorConfiguration.PROP_DYNAMODB_ENDPOINT, destinationEndpointConfiguration.getServiceEndpoint());
         properties.put(DynamoDBStreamsConnectorConfiguration.PROP_DYNAMODB_DATA_TABLE_NAME, destinationTable);
+        properties.put(DynamoDBReplicationEmitter.HASH_ATTR_NAME, hashAttrName);
         properties.put(DynamoDBStreamsConnectorConfiguration.PROP_REGION_NAME, destinationRegion.getName());
 
         // create the record processor factory based on given pipeline and connector configurations
