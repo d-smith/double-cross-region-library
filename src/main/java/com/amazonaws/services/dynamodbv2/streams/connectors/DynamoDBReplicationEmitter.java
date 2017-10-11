@@ -262,8 +262,16 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
         if (eventName.equalsIgnoreCase(OperationType.INSERT.toString()) || eventName.equalsIgnoreCase(OperationType.MODIFY.toString())) {
             // For INSERT or MODIFY: Put the new image in the DynamoDB table
             PutItemRequest putItemRequest = new PutItemRequest();
+
             Map<String,AttributeValue> item = record.getDynamodb().getNewImage();
-            putItemRequest.setItem(item);
+
+            //Remove the replicate attribute. Note we make a copy of the map so the
+            //unit tests keep running... tests currently fail if they don't. Can't tell
+            //if it is a bug or a side effect of how the tests are constructed.
+            Map<String,AttributeValue> replicateItem = new HashMap<>(item);
+            replicateItem.remove("replicate");
+
+            putItemRequest.setItem(replicateItem);
             putItemRequest.setTableName(getTableName());
 
             putItemRequest.setConditionExpression(insertOrModifyConditionExpression);
@@ -332,12 +340,16 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
                 }
                 final Record record = recordToSubmit;
                 if (null == record) {
+
                     continue; // Check if all records have completed and if not try to poll again
                 }
                 // Generate the request based on the record
+                log.info("create request for " + record);
                 AmazonWebServiceRequest request = createRequest(record);
                 if (request == null) { // Should only happen if DynamoDB Streams API updates to support different operations
                                        // than {INSERT, MODIFY, REMOVE}.
+                    log.info("not emitting: " + record);
+                    doneSignal.countDown();
                     continue;
                 }
                 // Submit the write request based on its type
@@ -381,6 +393,10 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
                     while (!toSubmit.offer(record)) {
                         ; // NOP
                     }
+                } else if (exception instanceof ConditionalCheckFailedException) {
+                    log.info("Conditional check failed: " + record);
+                    doneSignal.countDown();
+                    // OK
                 } else if (exception instanceof ItemCollectionSizeLimitExceededException) {
                     // Not Retryable, but from DynamoDB
                     log.error("Local Secondary Index is full: " + record, exception);
@@ -401,7 +417,6 @@ public class DynamoDBReplicationEmitter implements IEmitter<Record> {
                 } else if (exception instanceof AmazonClientException) {
                     // This block catches unrecoverable AmazonWebServices errors:
                     //
-                    // ConditionalCheckFailedException - not possible as we are not making conditional writes
                     // LimitExceededException - not possible for PutItem, UpdateItem, or DeleteItem
                     // ResourceInUseException - not possible for PutItem, UpdateItem, or DeleteItem
                     // ResourceNotFoundException - table does not exist

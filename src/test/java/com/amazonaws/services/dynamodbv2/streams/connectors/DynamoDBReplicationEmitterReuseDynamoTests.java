@@ -17,6 +17,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient;
 import com.amazonaws.services.dynamodbv2.model.Record;
 import com.amazonaws.services.kinesis.connectors.interfaces.IEmitter;
 
+//Remove of replicate attribute in emitter is now causing test run to hang - need
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Future.class, DynamoDBReplicationEmitter.class})
 @PowerMockIgnore({"javax.management.*", "org.apache.log4j.*"})
@@ -33,6 +34,8 @@ public class DynamoDBReplicationEmitterReuseDynamoTests extends DynamoDBReplicat
         properties.setProperty("DYNAMODB_ENDPOINT", "ENDPOINT");
         properties.setProperty("REGION_NAME", "REGION");
         properties.setProperty("DYNAMODB_DATA_TABLE_NAME", "TABLE");
+
+
         AWSStaticCredentialsProvider credentialProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials("Access", "Secret"));
         return new DynamoDBReplicationEmitter(new DynamoDBStreamsConnectorConfiguration(properties, credentialProvider),
             new AmazonDynamoDBAsyncClient(credentialProvider, new ClientConfiguration().withMaxErrorRetry(0), Executors.newFixedThreadPool(MAX_THREADS)), null);
