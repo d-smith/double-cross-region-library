@@ -17,6 +17,9 @@ Parameters:
     Default: us-west-2
   ECSCluster:
     Type: String
+  TaskName:
+    Description: task name used to coordinate multiple replicators, unique per table replicated
+    Type: String
 
 Resources:
 
@@ -47,6 +50,8 @@ Resources:
             - !Sub  ${DestTable}
             - --hashAttrName
             - !Sub ${HashAttrName}
+            - --taskName
+            - !Sub ${TaskName}
           LogConfiguration:
             LogDriver: awslogs
             Options:

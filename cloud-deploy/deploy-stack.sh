@@ -8,4 +8,5 @@ ParameterKey=SourceTable,ParameterValue=serverless-rest-api-with-dynamodb-hc1 \
 ParameterKey=DestTable,ParameterValue=serverless-rest-api-with-dynamodb-hc1 \
 ParameterKey=HashAttrName,ParameterValue=id \
 ParameterKey=ClusterName,ParameterValue=CharlieFoxtrot \
+ParameterKey=TaskName,ParameterValue=hc1-task \
 --capabilities CAPABILITY_IAM
