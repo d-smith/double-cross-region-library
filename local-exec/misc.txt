@@ -1,0 +1,19 @@
+aws dynamodb scan --table-name PKTestTable3 \
+--filter-expression "begins_with(Id,:prefix)" \
+--expression-attribute-values '{":prefix":{"S":"west"}}' \
+--region us-east-1 --select "COUNT"
+
+aws dynamodb scan --table-name PKTestTable3 \
+--filter-expression "begins_with(Id,:prefix)" \
+--expression-attribute-values '{":prefix":{"S":"east"}}' \
+--region us-east-1 --select "COUNT"
+
+aws dynamodb scan --table-name PKTestTable3 \
+--filter-expression "begins_with(Id,:prefix)" \
+--expression-attribute-values '{":prefix":{"S":"west"}}' \
+--region us-west-2 --select "COUNT"
+
+aws dynamodb scan --table-name PKTestTable3 \
+--filter-expression "begins_with(Id,:prefix)" \
+--expression-attribute-values '{":prefix":{"S":"east"}}' \
+--region us-west-2 --select "COUNT"
