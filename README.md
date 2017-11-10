@@ -6,6 +6,18 @@ database usage with a hard coded conflict resoution strategy. Roadmap
 should this prove out would be a way to generalize this approach with
 configurable conflict resolution and attribute usage.
 
+This library imposes some requirements on the client:
+
+* When creating or modifying an item in the replicated table, the caller must include three attributes:
+    * ts - numeric timestamp, such as milliseconds since the epoch
+    * wid - string write id attribute, used to break ties should conflicting writes with
+    identical timestamps occur. A random uuid would work well.
+    * replicate - a boolean attribute used to indicate if the item should be replicated. This attribute us stripped from the remote write, and we use its absence to eliminate replication cycles without having to traverse regions to use conflict resolution.
+
+Use the files in local-exec to run local copies from the command prompt on your development machine.
+
+The cloud-deploy contains the files to package the code as a Docker container, and the cloud formation to create an ECS cluster running the replicator.
+
 # DynamoDB Cross-Region Replication
 
 The DynamoDB cross-region replication process consists of 2 distinct steps:
