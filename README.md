@@ -1,5 +1,7 @@
 # Double Cross-Region Replication
 
+Note: This functionality is now pretty much obsolete with DDB global tables. Hurray!
+
 Placeholder - will add additional docs. For now know this is the 
 DynamoDB cross region replication library modified for multimaster
 database usage with a hard coded conflict resoution strategy. Roadmap
